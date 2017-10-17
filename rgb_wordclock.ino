@@ -1,6 +1,9 @@
 /*
 Hier kurze Einleitung schreiben
+[] Edit Layout: Only one Layout
+
 */
+
 
 //Library includes
 #include <FastLED.h>
