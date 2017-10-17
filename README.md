@@ -1,13 +1,12 @@
-rgb_wordclock_redesigned
-=============
+# rgb_wordclock_redesigned
 
 Wordclock based on the popular WS2812B RGB LED strips with the ESP32 Controller.
 
-
-####ToDo
+## ToDo
 
 - [x] Order ESP32
 - [x] Download newest Arduino IDE and install ESP32 software from GitHub
+- [x] Download Atom
 - [ ] Make code running on ESP32
 - [ ] Replace DCF77 recipient (Onboard Wifi sync)
 - [ ] Turn the clock automatic off at night
@@ -15,21 +14,16 @@ Wordclock based on the popular WS2812B RGB LED strips with the ESP32 Controller.
 - [ ] Smartphone app to control the clock
 - [ ] Replace WS2812B to newer Version LED (e.g.WS2813) to save energy
 
+## Build
 
-####Build
+## Known Issues
 
-
-
-####Known Issues
-
-
-
-####LED Mapping
+## LED Mapping
 
 `alt_layout1.h`
 
 ```
-111                                        110                      .                        .
+111                                        110                      .                        .
 
        99 100 101 102 103 104 105 106 107 108 109                      E S K I S T A F Ü N F
        98  97  96  95  94  93  92  91  90  89  88                      Z E H N Z W A N Z I G
@@ -43,5 +37,4 @@ Wordclock based on the popular WS2812B RGB LED strips with the ESP32 Controller.
        10  9   8   7   6   5   4   3   2    1   0                      Z E H N E U N K U H R
 
 112                                        113                      .                         .
-
 ```
