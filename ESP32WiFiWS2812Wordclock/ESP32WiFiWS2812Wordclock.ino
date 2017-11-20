@@ -28,6 +28,7 @@ void digitalClockDisplay();
 void printDigits(int digits);
 void sendNTPpacket(IPAddress &address);
 
+//LED Settings
 const int DATA_PIN = 18;
 const uint16_t NUM_PIXELS = 114;
 rgbVal *pixels;
@@ -48,6 +49,7 @@ long waitUntilRtc = 0;
 
 void setup()
 {
+  //Setup Wifi
   Serial.begin(9600);
   Serial.println("TimeNTP Example");
   Serial.print("Connecting to ");
@@ -65,28 +67,25 @@ void setup()
   Udp.begin(localPort);
   Serial.println("waiting for sync");
   setSyncProvider(getNtpTime);
-  setSyncInterval(300);
+  setSyncInterval(300); //Get time from Server every 5 min
 
-  
+  //Setup LED_WS2812B
   ws2812_init(DATA_PIN, LED_WS2812B);
   pixels = (rgbVal*)malloc(sizeof(rgbVal) * NUM_PIXELS);
   displayOff();
 }
 
-time_t prevDisplay = 0; // when the digital clock was displayed
+//time_t prevDisplay = 0; // when the digital clock was displayed
 
 void loop() {
 
   if (timeStatus() != timeNotSet) {
-    if (now() != prevDisplay) { //update the display only if time has changed
-      prevDisplay = now();
       clockLogic();
-    }
+    //if (now() != prevDisplay) { //update the display only if time has changed
+    //  prevDisplay = now();
+       //digitalClockDisplay(); for debugging in Serial monitor
+    //}
   }
-
-    //displayStars();
-    //matrixReloaded();
-    //fastTest();
 }
 
 void clockLogic() {
@@ -101,47 +100,6 @@ void clockLogic() {
     waitUntilRtc += oneSecondDelay;
   }
 }
-
-void digitalClockDisplay()
-{
-  // digital clock display of the time
-  Serial.print(hour());
-  printDigits(minute());
-  printDigits(second());
-  Serial.print(" ");
-  Serial.print(day());
-  Serial.print(".");
-  Serial.print(month());
-  Serial.print(".");
-  Serial.print(year());
-  Serial.println();
-}
-
-void printDigits(int digits)
-{
-  // utility for digital clock display: prints preceding colon and leading 0
-  Serial.print(":");
-  if (digits < 10)
-    Serial.print('0');
-  Serial.print(digits);
-}
-
-void fastTest(){
-  if(millis() >= waitUntilFastTest) {
-    if(testMinutes >= 60){
-      testMinutes =0;
-      testHours++;
-    }
-    if(testHours >=24){
-      testHours = 0;
-    }
-    displayOff();
-    timeToStrip(testHours,testMinutes);
-    testMinutes++;
-    waitUntilFastTest += oneSecondDelay;
-  }
-}
-
 
 void timeToStrip(uint8_t hours,uint8_t minutes)
 {
@@ -345,3 +303,43 @@ void sendNTPpacket(IPAddress &address)
   Udp.endPacket();
 }
 
+/*-------- debugging code for clock ----------*/
+void digitalClockDisplay()
+{
+  // digital clock display of the time
+  Serial.print(hour());
+  printDigits(minute());
+  printDigits(second());
+  Serial.print(" ");
+  Serial.print(day());
+  Serial.print(".");
+  Serial.print(month());
+  Serial.print(".");
+  Serial.print(year());
+  Serial.println();
+}
+
+void printDigits(int digits)
+{
+  // utility for digital clock display: prints preceding colon and leading 0
+  Serial.print(":");
+  if (digits < 10)
+    Serial.print('0');
+  Serial.print(digits);
+}
+
+void fastTest(){
+  if(millis() >= waitUntilFastTest) {
+    if(testMinutes >= 60){
+      testMinutes =0;
+      testHours++;
+    }
+    if(testHours >=24){
+      testHours = 0;
+    }
+    displayOff();
+    timeToStrip(testHours,testMinutes);
+    testMinutes++;
+    waitUntilFastTest += oneSecondDelay;
+  }
+}

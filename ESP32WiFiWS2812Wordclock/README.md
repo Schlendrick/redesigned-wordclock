@@ -14,7 +14,6 @@ Wordclock based on the popular WS2812B RGB LED strips with the ESP32 Controller.
 
 ## Known Issues
 
-## LED Mapping
 
 `alt_layout1.h`
 
