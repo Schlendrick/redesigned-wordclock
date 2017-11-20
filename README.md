@@ -4,11 +4,7 @@ Wordclock based on the popular WS2812B RGB LED strips with the ESP32 Controller.
 
 ## ToDo
 
-- [x] Order ESP32
-- [x] Download newest Arduino IDE and install ESP32 software from GitHub
-- [x] Download Atom
-- [ ] Make code running on ESP32
-- [ ] Replace DCF77 recipient (Onboard Wifi sync)
+- [x] Replace DCF77 recipient (Onboard Wifi sync)
 - [ ] Turn the clock automatic off at night
 - [ ] Show the temperature (Onboard Temperatur Sensor)
 - [ ] Smartphone app to control the clock
