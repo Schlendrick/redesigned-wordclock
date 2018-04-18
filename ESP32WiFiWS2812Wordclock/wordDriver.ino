@@ -4,7 +4,7 @@ void pushToStrip(int ledId);
 
 void pushToStrip(int ledId) {
   
-    pixels[ledId] = makeRGBVal (0, 0, 255);
+    pixels[ledId] = makeRGBVal(227, 220, 128);
     ws2812_setColors(NUM_PIXELS, pixels);
 }
 
