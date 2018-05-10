@@ -3,8 +3,8 @@
 #include <WiFiUdp.h>
 #include "ws2812.h"
 
-const char ssid[] = "UPCAA87BFD";  //  your network SSID (name)
-const char pass[] = "czkx78pjMCvj";       // your network password
+const char ssid[] = "Hagstrasse3";  //  your network SSID (name)
+const char pass[] = "Obergeschoss2";       // your network password
 
 // NTP Servers:
 static const char ntpServerName[] = "us.pool.ntp.org";
