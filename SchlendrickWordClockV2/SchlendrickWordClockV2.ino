@@ -87,7 +87,7 @@ void setup()
   debouncerMode.interval(5); // interval in ms
 
   //initialize temps
-  delay(2500);
+  dht.begin();
   getTemperatures();
   if (isnan(tempDHT11)) {
     Serial.println("Failed to read from DHT sensor!");
@@ -149,6 +149,7 @@ void calculateAndPushLED () {
 void generateClockMatrix() {
   //Update LED (ID, R, G, B, White)
   pushES_IST();
+  pushUHR;
 
   //prepair time
   int myMin = minute();
