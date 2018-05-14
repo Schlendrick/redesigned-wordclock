@@ -1,3 +1,9 @@
+MY EDIT:
+
+http://diskussion.christians-bastel-laden.de/viewtopic.php?f=11&t=2673
+"Nun aber ein Paar Bilder des gefrästen Rahmens. Material ist MDF in 22mm stärke und ausgelegt für ws2812b leds."
+
+
 ################
 #    Lizenz    #
 ################
