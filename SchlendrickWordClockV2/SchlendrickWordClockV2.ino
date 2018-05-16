@@ -5,6 +5,7 @@
 #include <SimpleTimer.h> //https://github.com/jfturcot/SimpleTimer
 #include <FAB_LED.h> //https://github.com/sonyhome/FAB_LED
 #include <DHT.h> //https://github.com/adafruit/DHT-sensor-library
+#include <Adafruit_Sensor.h> //https://github.com/adafruit/Adafruit_Sensor
 
 //define adresses
 #define DS3231_ADDRESS 0x68
@@ -24,6 +25,8 @@ const uint8_t numPixels = 115;
 rgbw pixels[numPixels] = {};
 // define brightness var
 uint8_t ledBrightness = 255;
+uint8_t ledBrightnessRGBWhite = 0;
+uint8_t ledBrightnessLEDWhite = 0;
 
 /* ************** TEMP BLOCK ************** */
 //correct temp
@@ -138,6 +141,14 @@ void calculateAndPushLED () {
       //Nothing
       break;
   }
+
+  //sk6812:
+  ledBrightnessRGBWhite = 0;
+  ledBrightnessLEDWhite = ledBrightness;
+  
+  //ws2812b
+  //ledBrightnessRGBWhite = ledBrightness;
+  //ledBrightnessLEDWhite = 0;
 
   //activate matrix on hardware
   strip.sendPixels(numPixels, pixels);
@@ -270,7 +281,7 @@ void checkButtons() {
 
   if (buttonHour == LOW && bolHourSet == false) {
     bolHourSet = true;
-    setTime(hour() + 1, minute(), 0, 1, 1, 2000);
+    setTime(hour() + 1, minute(), 0, 17, 7, 2017);
     RTC.set(now());
   } else if (buttonHour == HIGH) {
     bolHourSet = false;
@@ -280,9 +291,9 @@ void checkButtons() {
     bolMinSet = true;
     //check if time change would result in adding an hour
     if (minute() == 59)
-      setTime(hour() - 1, minute() + 1, 0, 1, 1, 2000);
+      setTime(hour() - 1, minute() + 1, 0, 17, 7, 2017);
     else
-      setTime(hour(), minute() + 1, 0, 1, 1, 2000);
+      setTime(hour(), minute() + 1, 0, 17, 7, 2017);
     RTC.set(now());
   } else if (buttonMin == HIGH) {
     bolMinSet = false;
@@ -323,15 +334,17 @@ void printDebugOnLCD(String rowOne, String rowTwo) {
 void writeSerialClockDisplay()
 {
   // digital clock display of the time
-  Serial.print(hour());
-  Serial.print(minute());
-  Serial.print(second());
-  Serial.print(' ');
-  Serial.print(day());
-  Serial.print(' ');
-  Serial.print(month());
-  Serial.print(' ');
   Serial.print(year());
+  Serial.print('-');
+  Serial.print(month());
+  Serial.print('-');
+  Serial.print(day());
+  Serial.print('_');
+  Serial.print(hour());
+  Serial.print('-');
+  Serial.print(minute());
+  Serial.print('-');
+  Serial.print(second());
   Serial.println();
 }
 
@@ -378,9 +391,384 @@ float getDHT11Temprature() {
 ////////////////////////////////////////////////////////////////////////////////
 void updateLED(int i, char r, char g, char b, char w)
 {
-  pixels[i].r = r;
-  pixels[i].g = g;
+  pixels[i].r = g; //fix some errors with strip?
+  pixels[i].g = r; //fix some errors with strip?
   pixels[i].b = b;
   pixels[i].w = w;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// PUSHES FOR STRIP
+////////////////////////////////////////////////////////////////////////////////
+void pushES_IST()  {
+  updateLED(99, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(100, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(102, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(103, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(104, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushFUENF1() {
+  updateLED(106, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(107, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(108, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(109, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushFUENF2() {
+  updateLED(62, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(63, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(64, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(65, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushNACH() {
+  updateLED(69, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(68, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(67, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(66, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushZEHN1() {
+  updateLED(98, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(97, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(96, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(95, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushVIERTEL() {
+  updateLED(81, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(82, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(83, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(84, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(85, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(86, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(87, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushVOR() {
+  updateLED(76, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(75, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(74, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushHALB() {
+  updateLED(55, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(56, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(57, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(58, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushONE() {
+  updateLED(111, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTWO() {
+  updateLED(110, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTHREE() {
+  updateLED(113, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushFOUR() {
+  updateLED(112, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushZWANZIG() {
+  updateLED(94, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(93, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(92, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(91, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(90, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(89, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(88, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushZWOELF() {
+  updateLED(17, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(18, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(19, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(20, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(21, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushEINS() {
+  updateLED(54, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(53, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(52, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(51, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushEIN() {
+  updateLED(54, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(53, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(52, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushZWEI() {
+  updateLED(47, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(46, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(45, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(44, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushDREI() {
+  updateLED(33, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(34, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(35, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(36, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushVIER() {
+  updateLED(40, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(41, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(42, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(43, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushSECHS() {
+  updateLED(32, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(31, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(30, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(29, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(28, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushSIEBEN() {
+  updateLED(11, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(12, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(13, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(14, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(15, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(16, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushACHT() {
+  updateLED(25, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(24, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(23, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(22, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushNEUN() {
+  updateLED(7, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(6, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(5, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(4, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushZEHN() {
+  updateLED(10, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(9, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(8, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(7, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushELF() {
+  updateLED(60, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(61, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(62, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushUHR() {
+  updateLED(2, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(1, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(0, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushHeart() {
+  updateLED(101, ledBrightness, 0, 0, 0);
+  updateLED(102, ledBrightness, 0, 0, 0);
+  updateLED(106, ledBrightness, 0, 0, 0);
+  updateLED(107, ledBrightness, 0, 0, 0);
+  updateLED(97, ledBrightness, 0, 0, 0);
+  updateLED(94, ledBrightness, 0, 0, 0);
+  updateLED(92, ledBrightness, 0, 0, 0);
+  updateLED(89, ledBrightness, 0, 0, 0);
+  updateLED(77, ledBrightness, 0, 0, 0);
+  updateLED(82, ledBrightness, 0, 0, 0);
+  updateLED(87, ledBrightness, 0, 0, 0);
+  updateLED(76, ledBrightness, 0, 0, 0);
+  updateLED(66, ledBrightness, 0, 0, 0);
+  updateLED(55, ledBrightness, 0, 0, 0);
+  updateLED(65, ledBrightness, 0, 0, 0);
+  updateLED(53, ledBrightness, 0, 0, 0);
+  updateLED(45, ledBrightness, 0, 0, 0);
+  updateLED(35, ledBrightness, 0, 0, 0);
+  updateLED(41, ledBrightness, 0, 0, 0);
+  updateLED(29, ledBrightness, 0, 0, 0);
+  updateLED(25, ledBrightness, 0, 0, 0);
+  updateLED(17, ledBrightness, 0, 0, 0);
+  updateLED(15, ledBrightness, 0, 0, 0);
+  updateLED(5, ledBrightness, 0, 0, 0);
+}
+void pushTempDegree() {
+  updateLED(108, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(90, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(88, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(86, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempLOne() {
+  updateLED( 73 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 57 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 58 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 53 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 51 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 36 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 29 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 14 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempLTwo() {
+  updateLED( 75 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 74 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 73 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 58 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 53 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 52 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 51 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 34 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 31 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 12 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 13 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 14 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempLThree() {
+  updateLED( 75 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 74 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 73 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 58 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 53 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 52 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 51 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 36 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 29 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 12 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 13 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 14 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempLFour() {
+  updateLED( 75 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 73 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 56 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 58 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 53 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 52 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 51 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 36 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 29 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 14 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempRZero() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 38 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 27 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempROne() {
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 61 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempRTwo() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 38 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 27 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempRThree() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempRFour() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempRFive() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempRSix() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 38 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 27 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempRSeven() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempREight() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 38 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 27 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+}
+void pushTempRNine() {
+  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
 }
 
