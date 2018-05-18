@@ -14,10 +14,11 @@
 #define BUTTON_MODE 4
 #define LEDPIN 6
 #define DHTPIN 7
+#define LDRPIN A1
 
 //define wordclock modes
-#define CLOCK_100_PER_MODE 0
-#define CLOCK_50_PER_MODE 1
+#define CLOCK_LDR 0
+#define CLOCK_100_PER_MODE 1
 #define TEMPERATUR_MODE 2
 #define HEART_MODE 3
 #define OFF_MODE 4
@@ -78,7 +79,7 @@ void setup()
 
   //start output Timer
   timerClock.setInterval(100, processTimesOutput);
-  timerTemp.setInterval(60000, getTemperatures);
+  timerTemp.setInterval(5000, getTemperatures);
 
   //intialize wire
   Wire.begin();
@@ -133,8 +134,8 @@ void calculateAndPushLED () {
       ledBrightness = 255;
       generateClockMatrix();
       break;
-    case CLOCK_50_PER_MODE: 
-      ledBrightness = 128;
+    case CLOCK_LDR:
+      ledBrightness = 5+((1000 - analogRead(LDRPIN))/4);
       generateClockMatrix();
       break;
     case TEMPERATUR_MODE:
@@ -153,7 +154,7 @@ void calculateAndPushLED () {
   //sk6812:
   ledBrightnessRGBWhite = 0;
   ledBrightnessLEDWhite = ledBrightness;
-  
+
   //ws2812b
   //ledBrightnessRGBWhite = ledBrightness;
   //ledBrightnessLEDWhite = 0;
@@ -271,7 +272,7 @@ void processTimesOutput() {
   calculateAndPushLED();
   //writeSerialClockDisplay();
   String rowOne = String(hour()) + ":" + String(minute()) + ":" + String(second()) + " | Mode" + modeSelector;
-  String rowTwo = String(tempDS3231) + "\xDF" + "C " + String(tempDHT11) + "\xDF" + "C";
+  String rowTwo = String(tempDS3231) + "\xDF" + "C " + String((1000-analogRead(LDRPIN))/10) + "%LDR";
   printDebugOnLCD(rowOne, rowTwo);
 }
 
