@@ -12,10 +12,18 @@
 #define BUTTON_HOUR 2
 #define BUTTON_MIN 3
 #define BUTTON_MODE 4
+#define LEDPIN 6
 #define DHTPIN 7
 
+//define wordclock modes
+#define CLOCK_100_PER_MODE 0
+#define CLOCK_50_PER_MODE 1
+#define TEMPERATUR_MODE 2
+#define HEART_MODE 3
+#define OFF_MODE 4
+
 // Declare the LED protocol and the port
-sk6812<D, 6>  strip;
+sk6812<D, LEDPIN>  strip;
 //ws2812b<D, 6>  strip;
 
 /* ************** LED BLOCK ************** */
@@ -121,23 +129,23 @@ void calculateAndPushLED () {
   }
 
   switch (modeSelector) {
-    case 0: //clock 100% mode
+    case CLOCK_100_PER_MODE:
       ledBrightness = 255;
       generateClockMatrix();
       break;
-    case 1: //clock % mode
+    case CLOCK_50_PER_MODE: 
       ledBrightness = 128;
       generateClockMatrix();
       break;
-    case 2: //temp mode
+    case TEMPERATUR_MODE:
       ledBrightness = 255;
       generateTempMatrix();
       break;
-    case 3: //heart mode
+    case HEART_MODE:
       ledBrightness = 255;
       pushHeart();
       break;
-    case 4: //off mode
+    case OFF_MODE:
       //Nothing
       break;
   }
