@@ -270,10 +270,10 @@ void generateTempMatrix() {
 ////////////////////////////////////////////////////////////////////////////////
 void processTimesOutput() {
   calculateAndPushLED();
-  //writeSerialClockDisplay();
   String rowOne = String(hour()) + ":" + String(minute()) + ":" + String(second()) + " | Mode" + modeSelector;
   String rowTwo = String(tempDS3231) + "\xDF" + "C " + String((1000-analogRead(LDRPIN))/10) + "%LDR";
   printDebugOnLCD(rowOne, rowTwo);
+  printDebugOnConsole(rowOne, rowTwo);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -336,25 +336,13 @@ void printDebugOnLCD(String rowOne, String rowTwo) {
   lcd.print( rowTwo );
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
-// Write current time and date to serial
+// Write current time and temp ond LCD
 ////////////////////////////////////////////////////////////////////////////////
-void writeSerialClockDisplay()
-{
-  // digital clock display of the time
-  Serial.print(year());
-  Serial.print('-');
-  Serial.print(month());
-  Serial.print('-');
-  Serial.print(day());
-  Serial.print('_');
-  Serial.print(hour());
-  Serial.print('-');
-  Serial.print(minute());
-  Serial.print('-');
-  Serial.print(second());
-  Serial.println();
+void printDebugOnConsole(String rowOne, String rowTwo) {
+  Serial.println( rowOne );
+  Serial.println( rowTwo );
+  Serial.println( "******************" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
