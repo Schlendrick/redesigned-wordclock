@@ -60,6 +60,9 @@ bool bolHourSet = false;
 bool bolModeSet = false;
 int modeSelector = 0;
 
+/* ************** SERIAL BLOCK ************** */
+int serialOutputCounter = 0;
+
 /* ************** TIMER BLOCK ************** */
 //define Timer
 SimpleTimer timerClock;
@@ -135,7 +138,7 @@ void calculateAndPushLED () {
       generateClockMatrix();
       break;
     case CLOCK_LDR:
-      ledBrightness = 5+((1000 - analogRead(LDRPIN))/4);
+      ledBrightness = 5 + ((1000 - analogRead(LDRPIN)) / 4);
       generateClockMatrix();
       break;
     case TEMPERATUR_MODE:
@@ -269,9 +272,12 @@ void generateTempMatrix() {
 // Output the time to different media
 ////////////////////////////////////////////////////////////////////////////////
 void processTimesOutput() {
+  //cycle 0-9 for output to slow serial down
+  serialOutputCounter++; if (serialOutputCounter > 9) serialOutputCounter = 0;
+  
   calculateAndPushLED();
   String rowOne = String(hour()) + ":" + String(minute()) + ":" + String(second()) + " | Mode" + modeSelector;
-  String rowTwo = String(tempDS3231) + "\xDF" + "C " + String((1000-analogRead(LDRPIN))/10) + "%LDR";
+  String rowTwo = String(tempDS3231) + "\xDF" + "C " + String((1000 - analogRead(LDRPIN)) / 10) + "%LDR";
   printDebugOnLCD(rowOne, rowTwo);
   printDebugOnConsole(rowOne, rowTwo);
 }
@@ -340,9 +346,11 @@ void printDebugOnLCD(String rowOne, String rowTwo) {
 // Write current time and temp ond LCD
 ////////////////////////////////////////////////////////////////////////////////
 void printDebugOnConsole(String rowOne, String rowTwo) {
-  Serial.println( rowOne );
-  Serial.println( rowTwo );
-  Serial.println( "******************" );
+  if (serialOutputCounter == 0) {
+    Serial.println( "******************" );
+    Serial.println( rowOne );
+    Serial.println( rowTwo );
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
