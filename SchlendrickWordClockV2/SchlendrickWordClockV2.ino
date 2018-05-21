@@ -183,10 +183,11 @@ void generateClockMatrix() {
   int myMin = minute();
   int myHour = hour();
 
-  if (myHour >= 12) // 24h auf 12h brechen
-    myHour -= 12;
   if (myMin >= 25) // USE CASE "VOR"/"HALB"
     myHour += 1;
+  if (myHour >= 12) // 24h auf 12h brechen
+    myHour -= 12;
+
 
   //calculate hours
   switch (myHour) {
