@@ -9,9 +9,9 @@
 
 //define adresses
 #define DS3231_ADDRESS 0x68
-#define BUTTON_HOUR 2
-#define BUTTON_MIN 3
-#define BUTTON_MODE 4
+#define BUTTON_HOUR 8
+#define BUTTON_MIN 9
+#define BUTTON_MODE 10
 #define LEDPIN 6
 #define DHTPIN 7
 #define LDRPIN A1
@@ -274,7 +274,7 @@ void generateTempMatrix() {
 void processTimesOutput() {
   //cycle 0-9 for output to slow serial down
   serialOutputCounter++; if (serialOutputCounter > 9) serialOutputCounter = 0;
-  
+
   calculateAndPushLED();
   String rowOne = String(hour()) + ":" + String(minute()) + ":" + String(second()) + " | Mode" + modeSelector;
   String rowTwo = String(tempDS3231) + "\xDF" + "C " + String((1000 - analogRead(LDRPIN)) / 10) + "%LDR";
