@@ -42,8 +42,6 @@ uint8_t ledBrightnessLEDWhite = 0;
 const int tempOffset = 0;
 #define DHTTYPE DHT11   // DHT 11
 DHT dht(DHTPIN, DHTTYPE);
-float tempDHT11;
-float tempDS3231;
 float roomTemperature;
 
 /* ************** LCD BLOCK ************** */
@@ -104,7 +102,7 @@ void setup()
   //initialize temps
   dht.begin();
   getTemperatures();
-  if (isnan(tempDHT11)) {
+  if (isnan(roomTemperature)) {
     Serial.println("Failed to read from DHT sensor!");
     return;
   }
@@ -137,8 +135,8 @@ void calculateAndPushLED () {
       ledBrightness = 255;
       generateClockMatrix();
       break;
-    case CLOCK_LDR:
-      ledBrightness = 5 + ((1000 - analogRead(LDRPIN)) / 4);
+    case CLOCK_LDR: //25 so dass sicher im positiven Bereich
+      ledBrightness = 25 + ((1000 - analogRead(LDRPIN)) / 4);
       generateClockMatrix();
       break;
     case TEMPERATUR_MODE:
@@ -151,6 +149,14 @@ void calculateAndPushLED () {
       break;
     case OFF_MODE:
       //Nothing
+      break;
+      /*
+        case ALL_ON_MODE:
+        for (int i = 0; i < numPixels; i++) {
+        //pre define every led as "off"
+        updateLED(i, 0, 0 , 0, 111);
+        }
+      */
       break;
   }
 
@@ -172,14 +178,15 @@ void calculateAndPushLED () {
 void generateClockMatrix() {
   //Update LED (ID, R, G, B, White)
   pushES_IST();
-  pushUHR;
 
   //prepair time
   int myMin = minute();
   int myHour = hour();
-  //remove 12hours if afternoon
-  if (myHour >= 12)
+
+  if (myHour >= 12) // 24h auf 12h brechen
     myHour -= 12;
+  if (myMin >= 30) // USE CASE "VOR"
+    myHour += 1;
 
   //calculate hours
   switch (myHour) {
@@ -204,7 +211,7 @@ void generateClockMatrix() {
   //calculate minutes
   switch (myMin) {
     case 0: case 1: case 2: case 3: case 4:
-      /* NICHTS */ break;
+      pushUHR(); break;
     case 5: case 6: case 7: case 8: case 9:
       pushFUENF1(); pushNACH(); break;
     case 10: case 11: case 12: case 13: case 14:
@@ -277,7 +284,7 @@ void processTimesOutput() {
 
   calculateAndPushLED();
   String rowOne = String(hour()) + ":" + String(minute()) + ":" + String(second()) + " | Mode" + modeSelector;
-  String rowTwo = String(tempDS3231) + "\xDF" + "C " + String((1000 - analogRead(LDRPIN)) / 10) + "%LDR";
+  String rowTwo = String(roomTemperature) + "\xDF" + "C " + String((1000 - analogRead(LDRPIN)) / 10) + "%LDR";
   printDebugOnLCD(rowOne, rowTwo);
   printDebugOnConsole(rowOne, rowTwo);
 }
@@ -329,7 +336,7 @@ void checkButtons() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Write current time and temp ond LCD
+// Write current Debug on LCD
 ////////////////////////////////////////////////////////////////////////////////
 void printDebugOnLCD(String rowOne, String rowTwo) {
   for (int i = 0; i < (16 - rowTwo.length()); i++)
@@ -343,7 +350,7 @@ void printDebugOnLCD(String rowOne, String rowTwo) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Write current time and temp ond LCD
+// Write current Debug on console
 ////////////////////////////////////////////////////////////////////////////////
 void printDebugOnConsole(String rowOne, String rowTwo) {
   if (serialOutputCounter == 0) {
@@ -357,9 +364,7 @@ void printDebugOnConsole(String rowOne, String rowTwo) {
 // Reads temperature sensor of DS3231&DHT11 and write to variable
 ////////////////////////////////////////////////////////////////////////////////
 void getTemperatures() {
-  tempDS3231 = getDS3231Temprature();
-  tempDHT11 = getDHT11Temprature();
-  roomTemperature = tempDHT11;
+  roomTemperature = getDHT11Temprature();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
