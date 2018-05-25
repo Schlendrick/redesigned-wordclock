@@ -6,6 +6,8 @@
 #include <FAB_LED.h> //https://github.com/sonyhome/FAB_LED
 #include <DHT.h> //https://github.com/adafruit/DHT-sensor-library
 #include <Adafruit_Sensor.h> //https://github.com/adafruit/Adafruit_Sensor
+//#include <DCF77.h>
+//#include <TimeLib.h>
 
 //define adresses
 #define DS3231_ADDRESS 0x68
@@ -15,6 +17,8 @@
 #define LEDPIN 6
 #define DHTPIN 7
 #define LDRPIN A1
+//#define DCF_PIN 2           // Connection pin to DCF 77 device
+//#define DCF_INTERRUPT 0    // Interrupt number associated with pin
 
 //define wordclock modes
 #define CLOCK_LDR 0
@@ -27,6 +31,10 @@
 sk6812<D, LEDPIN>  strip;
 //ws2812b<D, 6>  strip;
 
+/* ************** DCF BLOCK ************** */
+//time_t time;
+//DCF77 DCF = DCF77(DCF_PIN, 0);
+
 /* ************** LED BLOCK ************** */
 // How many pixels to control
 const uint8_t numPixels = 115;
@@ -34,12 +42,8 @@ const uint8_t numPixels = 115;
 rgbw pixels[numPixels] = {};
 // define brightness var
 uint8_t ledBrightness = 255;
-uint8_t ledBrightnessRGBWhite = 0;
-uint8_t ledBrightnessLEDWhite = 0;
 
 /* ************** TEMP BLOCK ************** */
-//correct temp
-const int tempOffset = 0;
 #define DHTTYPE DHT11   // DHT 11
 DHT dht(DHTPIN, DHTTYPE);
 float roomTemperature;
@@ -78,9 +82,13 @@ void setup()
   else
     Serial.println("RTC has set the system time");
 
+  //intialize DCF
+  //DCF.Start();
+
   //start output Timer
   timerClock.setInterval(100, processTimesOutput);
   timerTemp.setInterval(5000, getTemperatures);
+
 
   //intialize wire
   Wire.begin();
@@ -159,14 +167,6 @@ void calculateAndPushLED () {
       */
       break;
   }
-
-  //sk6812:
-  ledBrightnessRGBWhite = 0;
-  ledBrightnessLEDWhite = ledBrightness;
-
-  //ws2812b
-  //ledBrightnessRGBWhite = ledBrightness;
-  //ledBrightnessLEDWhite = 0;
 
   //activate matrix on hardware
   strip.sendPixels(numPixels, pixels);
@@ -277,20 +277,6 @@ void generateTempMatrix() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// Output the time to different media
-////////////////////////////////////////////////////////////////////////////////
-void processTimesOutput() {
-  //cycle 0-9 for output to slow serial down
-  serialOutputCounter++; if (serialOutputCounter > 9) serialOutputCounter = 0;
-
-  calculateAndPushLED();
-  String rowOne = String(hour()) + ":" + String(minute()) + ":" + String(second()) + " | Mode" + modeSelector;
-  String rowTwo = String(roomTemperature) + "\xDF" + "C " + String((1000 - analogRead(LDRPIN)) / 10) + "%LDR";
-  printDebugOnLCD(rowOne, rowTwo);
-  printDebugOnConsole(rowOne, rowTwo);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // Check if Buttons are pushed
 ////////////////////////////////////////////////////////////////////////////////
 void checkButtons() {
@@ -333,7 +319,17 @@ void checkButtons() {
   } else if (buttonMode == HIGH) {
     bolModeSet = false;
   }
+}
 
+////////////////////////////////////////////////////////////////////////////////
+// Output the time to different media
+////////////////////////////////////////////////////////////////////////////////
+void processTimesOutput() {
+  calculateAndPushLED();
+  String rowOne = String(hour()) + ":" + String(minute()) + ":" + String(second()) + " | Mode" + modeSelector;
+  String rowTwo = String(roomTemperature) + "\xDF" + "C " + String((1000 - analogRead(LDRPIN)) / 10) + "%LDR";
+  printDebugOnLCD(rowOne, rowTwo);
+  printDebugOnConsole(rowOne, rowTwo);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -354,6 +350,9 @@ void printDebugOnLCD(String rowOne, String rowTwo) {
 // Write current Debug on console
 ////////////////////////////////////////////////////////////////////////////////
 void printDebugOnConsole(String rowOne, String rowTwo) {
+  getDCFTime();
+  //cycle 0-9 for output to slow serial down
+  serialOutputCounter++; if (serialOutputCounter > 9) serialOutputCounter = 0;
   if (serialOutputCounter == 0) {
     Serial.println( "******************" );
     Serial.println( rowOne );
@@ -362,39 +361,31 @@ void printDebugOnConsole(String rowOne, String rowTwo) {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+// Get DCF Time
+////////////////////////////////////////////////////////////////////////////////
+void getDCFTime()  {
+  /*
+    time_t DCFtime = DCF.getTime(); // Check if new DCF77 time is available
+    if (DCFtime != 0)
+    {
+      Serial.println("=================================================");
+      Serial.println("Time is updated");
+      Serial.println("=================================================");
+      //setTime(DCFtime);
+      printDebugOnLCD("Time is updated", "Time is updated");
+    }
+  */
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Reads temperature sensor of DS3231&DHT11 and write to variable
 ////////////////////////////////////////////////////////////////////////////////
 void getTemperatures() {
-  roomTemperature = getDHT11Temprature();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Reads temperature sensor of DS3231
-////////////////////////////////////////////////////////////////////////////////
-float getDS3231Temprature() {
-  // Read temperature of DS3231
-  float temp;
-  int msb, lsb;
-  Wire.beginTransmission(DS3231_ADDRESS);
-  Wire.write(0x11); // DS3231 Register in 11h
-  Wire.endTransmission();
-  Wire.requestFrom(DS3231_ADDRESS, 2); // Get 2 Byte Data from DS3231
-  msb = Wire.read();
-  lsb = Wire.read();
-  temp = ((msb << 2) + (lsb >> 6) ) / 4.0;
-  return temp + tempOffset;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// Reads temperature sensor of DHT11
-////////////////////////////////////////////////////////////////////////////////
-float getDHT11Temprature() {
   // Reading temperature or humidity takes about 250 milliseconds!
   // Sensor readings may also be up to 2 seconds 'old' (its a very slow sensor)
   //float h = dht.readHumidity();
   // Read temperature as Celsius (the default)
-  float temp = dht.readTemperature();
-  return temp + tempOffset;
+  roomTemperature = dht.readTemperature();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -412,155 +403,155 @@ void updateLED(int i, char r, char g, char b, char w)
 // PUSHES FOR STRIP
 ////////////////////////////////////////////////////////////////////////////////
 void pushES_IST()  {
-  updateLED(99, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(100, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(102, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(103, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(104, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(99, 0, 0, 0, ledBrightness);
+  updateLED(100, 0, 0, 0, ledBrightness);
+  updateLED(102, 0, 0, 0, ledBrightness);
+  updateLED(103, 0, 0, 0, ledBrightness);
+  updateLED(104, 0, 0, 0, ledBrightness);
 }
 void pushFUENF1() {
-  updateLED(106, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(107, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(108, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(109, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(106, 0, 0, 0, ledBrightness);
+  updateLED(107, 0, 0, 0, ledBrightness);
+  updateLED(108, 0, 0, 0, ledBrightness);
+  updateLED(109, 0, 0, 0, ledBrightness);
 }
 void pushFUENF2() {
-  updateLED(62, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(63, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(64, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(65, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(62, 0, 0, 0, ledBrightness);
+  updateLED(63, 0, 0, 0, ledBrightness);
+  updateLED(64, 0, 0, 0, ledBrightness);
+  updateLED(65, 0, 0, 0, ledBrightness);
 }
 void pushNACH() {
-  updateLED(69, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(68, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(67, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(66, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(69, 0, 0, 0, ledBrightness);
+  updateLED(68, 0, 0, 0, ledBrightness);
+  updateLED(67, 0, 0, 0, ledBrightness);
+  updateLED(66, 0, 0, 0, ledBrightness);
 }
 void pushZEHN1() {
-  updateLED(98, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(97, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(96, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(95, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(98, 0, 0, 0, ledBrightness);
+  updateLED(97, 0, 0, 0, ledBrightness);
+  updateLED(96, 0, 0, 0, ledBrightness);
+  updateLED(95, 0, 0, 0, ledBrightness);
 }
 void pushVIERTEL() {
-  updateLED(81, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(82, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(83, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(84, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(85, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(86, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(87, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(81, 0, 0, 0, ledBrightness);
+  updateLED(82, 0, 0, 0, ledBrightness);
+  updateLED(83, 0, 0, 0, ledBrightness);
+  updateLED(84, 0, 0, 0, ledBrightness);
+  updateLED(85, 0, 0, 0, ledBrightness);
+  updateLED(86, 0, 0, 0, ledBrightness);
+  updateLED(87, 0, 0, 0, ledBrightness);
 }
 void pushVOR() {
-  updateLED(76, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(75, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(74, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(76, 0, 0, 0, ledBrightness);
+  updateLED(75, 0, 0, 0, ledBrightness);
+  updateLED(74, 0, 0, 0, ledBrightness);
 }
 void pushHALB() {
-  updateLED(55, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(56, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(57, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(58, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(55, 0, 0, 0, ledBrightness);
+  updateLED(56, 0, 0, 0, ledBrightness);
+  updateLED(57, 0, 0, 0, ledBrightness);
+  updateLED(58, 0, 0, 0, ledBrightness);
 }
 void pushONE() {
-  updateLED(111, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(111, 0, 0, 0, ledBrightness);
 }
 void pushTWO() {
-  updateLED(110, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(110, 0, 0, 0, ledBrightness);
 }
 void pushTHREE() {
-  updateLED(113, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(113, 0, 0, 0, ledBrightness);
 }
 void pushFOUR() {
-  updateLED(112, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(112, 0, 0, 0, ledBrightness);
 }
 void pushZWANZIG() {
-  updateLED(94, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(93, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(92, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(91, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(90, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(89, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(88, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(94, 0, 0, 0, ledBrightness);
+  updateLED(93, 0, 0, 0, ledBrightness);
+  updateLED(92, 0, 0, 0, ledBrightness);
+  updateLED(91, 0, 0, 0, ledBrightness);
+  updateLED(90, 0, 0, 0, ledBrightness);
+  updateLED(89, 0, 0, 0, ledBrightness);
+  updateLED(88, 0, 0, 0, ledBrightness);
 }
 void pushZWOELF() {
-  updateLED(17, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(18, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(19, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(20, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(21, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(17, 0, 0, 0, ledBrightness);
+  updateLED(18, 0, 0, 0, ledBrightness);
+  updateLED(19, 0, 0, 0, ledBrightness);
+  updateLED(20, 0, 0, 0, ledBrightness);
+  updateLED(21, 0, 0, 0, ledBrightness);
 }
 void pushEINS() {
-  updateLED(54, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(53, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(52, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(51, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(54, 0, 0, 0, ledBrightness);
+  updateLED(53, 0, 0, 0, ledBrightness);
+  updateLED(52, 0, 0, 0, ledBrightness);
+  updateLED(51, 0, 0, 0, ledBrightness);
 }
 void pushEIN() {
-  updateLED(54, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(53, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(52, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(54, 0, 0, 0, ledBrightness);
+  updateLED(53, 0, 0, 0, ledBrightness);
+  updateLED(52, 0, 0, 0, ledBrightness);
 }
 void pushZWEI() {
-  updateLED(47, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(46, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(45, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(44, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(47, 0, 0, 0, ledBrightness);
+  updateLED(46, 0, 0, 0, ledBrightness);
+  updateLED(45, 0, 0, 0, ledBrightness);
+  updateLED(44, 0, 0, 0, ledBrightness);
 }
 void pushDREI() {
-  updateLED(33, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(34, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(35, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(36, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(33, 0, 0, 0, ledBrightness);
+  updateLED(34, 0, 0, 0, ledBrightness);
+  updateLED(35, 0, 0, 0, ledBrightness);
+  updateLED(36, 0, 0, 0, ledBrightness);
 }
 void pushVIER() {
-  updateLED(40, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(41, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(42, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(43, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(40, 0, 0, 0, ledBrightness);
+  updateLED(41, 0, 0, 0, ledBrightness);
+  updateLED(42, 0, 0, 0, ledBrightness);
+  updateLED(43, 0, 0, 0, ledBrightness);
 }
 void pushSECHS() {
-  updateLED(32, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(31, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(30, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(29, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(28, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(32, 0, 0, 0, ledBrightness);
+  updateLED(31, 0, 0, 0, ledBrightness);
+  updateLED(30, 0, 0, 0, ledBrightness);
+  updateLED(29, 0, 0, 0, ledBrightness);
+  updateLED(28, 0, 0, 0, ledBrightness);
 }
 void pushSIEBEN() {
-  updateLED(11, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(12, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(13, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(14, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(15, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(16, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(11, 0, 0, 0, ledBrightness);
+  updateLED(12, 0, 0, 0, ledBrightness);
+  updateLED(13, 0, 0, 0, ledBrightness);
+  updateLED(14, 0, 0, 0, ledBrightness);
+  updateLED(15, 0, 0, 0, ledBrightness);
+  updateLED(16, 0, 0, 0, ledBrightness);
 }
 void pushACHT() {
-  updateLED(25, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(24, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(23, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(22, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(25, 0, 0, 0, ledBrightness);
+  updateLED(24, 0, 0, 0, ledBrightness);
+  updateLED(23, 0, 0, 0, ledBrightness);
+  updateLED(22, 0, 0, 0, ledBrightness);
 }
 void pushNEUN() {
-  updateLED(7, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(6, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(5, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(4, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(7, 0, 0, 0, ledBrightness);
+  updateLED(6, 0, 0, 0, ledBrightness);
+  updateLED(5, 0, 0, 0, ledBrightness);
+  updateLED(4, 0, 0, 0, ledBrightness);
 }
 void pushZEHN() {
-  updateLED(10, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(9, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(8, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(7, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(10, 0, 0, 0, ledBrightness);
+  updateLED(9, 0, 0, 0, ledBrightness);
+  updateLED(8, 0, 0, 0, ledBrightness);
+  updateLED(7, 0, 0, 0, ledBrightness);
 }
 void pushELF() {
-  updateLED(60, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(61, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(62, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(60, 0, 0, 0, ledBrightness);
+  updateLED(61, 0, 0, 0, ledBrightness);
+  updateLED(62, 0, 0, 0, ledBrightness);
 }
 void pushUHR() {
-  updateLED(2, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(1, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(0, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(2, 0, 0, 0, ledBrightness);
+  updateLED(1, 0, 0, 0, ledBrightness);
+  updateLED(0, 0, 0, 0, ledBrightness);
 }
 void pushHeart() {
   updateLED(101, ledBrightness, 0, 0, 0);
@@ -589,197 +580,197 @@ void pushHeart() {
   updateLED(5, ledBrightness, 0, 0, 0);
 }
 void pushTempDegree() {
-  updateLED(108, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(90, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(88, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED(86, ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED(108, 0, 0, 0, ledBrightness);
+  updateLED(90, 0, 0, 0, ledBrightness);
+  updateLED(88, 0, 0, 0, ledBrightness);
+  updateLED(86, 0, 0, 0, ledBrightness);
 }
 void pushTempLOne() {
-  updateLED( 73 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 57 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 58 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 53 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 51 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 36 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 29 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 14 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 73 , 0, 0, 0, ledBrightness);
+  updateLED( 57 , 0, 0, 0, ledBrightness);
+  updateLED( 58 , 0, 0, 0, ledBrightness);
+  updateLED( 53 , 0, 0, 0, ledBrightness);
+  updateLED( 51 , 0, 0, 0, ledBrightness);
+  updateLED( 36 , 0, 0, 0, ledBrightness);
+  updateLED( 29 , 0, 0, 0, ledBrightness);
+  updateLED( 14 , 0, 0, 0, ledBrightness);
 }
 void pushTempLTwo() {
-  updateLED( 75 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 74 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 73 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 58 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 53 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 52 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 51 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 34 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 31 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 12 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 13 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 14 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 75 , 0, 0, 0, ledBrightness);
+  updateLED( 74 , 0, 0, 0, ledBrightness);
+  updateLED( 73 , 0, 0, 0, ledBrightness);
+  updateLED( 58 , 0, 0, 0, ledBrightness);
+  updateLED( 53 , 0, 0, 0, ledBrightness);
+  updateLED( 52 , 0, 0, 0, ledBrightness);
+  updateLED( 51 , 0, 0, 0, ledBrightness);
+  updateLED( 34 , 0, 0, 0, ledBrightness);
+  updateLED( 31 , 0, 0, 0, ledBrightness);
+  updateLED( 12 , 0, 0, 0, ledBrightness);
+  updateLED( 13 , 0, 0, 0, ledBrightness);
+  updateLED( 14 , 0, 0, 0, ledBrightness);
 }
 void pushTempLThree() {
-  updateLED( 75 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 74 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 73 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 58 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 53 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 52 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 51 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 36 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 29 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 12 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 13 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 14 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 75 , 0, 0, 0, ledBrightness);
+  updateLED( 74 , 0, 0, 0, ledBrightness);
+  updateLED( 73 , 0, 0, 0, ledBrightness);
+  updateLED( 58 , 0, 0, 0, ledBrightness);
+  updateLED( 53 , 0, 0, 0, ledBrightness);
+  updateLED( 52 , 0, 0, 0, ledBrightness);
+  updateLED( 51 , 0, 0, 0, ledBrightness);
+  updateLED( 36 , 0, 0, 0, ledBrightness);
+  updateLED( 29 , 0, 0, 0, ledBrightness);
+  updateLED( 12 , 0, 0, 0, ledBrightness);
+  updateLED( 13 , 0, 0, 0, ledBrightness);
+  updateLED( 14 , 0, 0, 0, ledBrightness);
 }
 void pushTempLFour() {
-  updateLED( 75 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 73 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 56 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 58 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 53 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 52 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 51 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 36 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 29 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 14 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 75 , 0, 0, 0, ledBrightness);
+  updateLED( 73 , 0, 0, 0, ledBrightness);
+  updateLED( 56 , 0, 0, 0, ledBrightness);
+  updateLED( 58 , 0, 0, 0, ledBrightness);
+  updateLED( 53 , 0, 0, 0, ledBrightness);
+  updateLED( 52 , 0, 0, 0, ledBrightness);
+  updateLED( 51 , 0, 0, 0, ledBrightness);
+  updateLED( 36 , 0, 0, 0, ledBrightness);
+  updateLED( 29 , 0, 0, 0, ledBrightness);
+  updateLED( 14 , 0, 0, 0, ledBrightness);
 }
 void pushTempRZero() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 38 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 27 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 70 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 60 , 0, 0, 0, ledBrightness);
+  updateLED( 62 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 38 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 27 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 16 , 0, 0, 0, ledBrightness);
+  updateLED( 17 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempROne() {
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 61 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 61 , 0, 0, 0, ledBrightness);
+  updateLED( 62 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempRTwo() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 38 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 27 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 70 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 62 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 48 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 38 , 0, 0, 0, ledBrightness);
+  updateLED( 27 , 0, 0, 0, ledBrightness);
+  updateLED( 16 , 0, 0, 0, ledBrightness);
+  updateLED( 17 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempRThree() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 70 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 62 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 48 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 16 , 0, 0, 0, ledBrightness);
+  updateLED( 17 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempRFour() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 60 , 0, 0, 0, ledBrightness);
+  updateLED( 62 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 48 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempRFive() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 70 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 60 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 48 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 16 , 0, 0, 0, ledBrightness);
+  updateLED( 17 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempRSix() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 38 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 27 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 70 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 60 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 48 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 38 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 27 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 16 , 0, 0, 0, ledBrightness);
+  updateLED( 17 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempRSeven() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 70 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 62 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempREight() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 38 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 27 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 70 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 60 , 0, 0, 0, ledBrightness);
+  updateLED( 62 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 48 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 38 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 27 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 16 , 0, 0, 0, ledBrightness);
+  updateLED( 17 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 void pushTempRNine() {
-  updateLED( 71 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 70 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 69 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 60 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 62 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 49 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 48 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 47 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 40 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 25 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 16 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 17 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
-  updateLED( 18 , ledBrightnessRGBWhite, ledBrightnessRGBWhite, ledBrightnessRGBWhite , ledBrightnessLEDWhite);
+  updateLED( 71 , 0, 0, 0, ledBrightness);
+  updateLED( 70 , 0, 0, 0, ledBrightness);
+  updateLED( 69 , 0, 0, 0, ledBrightness);
+  updateLED( 60 , 0, 0, 0, ledBrightness);
+  updateLED( 62 , 0, 0, 0, ledBrightness);
+  updateLED( 49 , 0, 0, 0, ledBrightness);
+  updateLED( 48 , 0, 0, 0, ledBrightness);
+  updateLED( 47 , 0, 0, 0, ledBrightness);
+  updateLED( 40 , 0, 0, 0, ledBrightness);
+  updateLED( 25 , 0, 0, 0, ledBrightness);
+  updateLED( 16 , 0, 0, 0, ledBrightness);
+  updateLED( 17 , 0, 0, 0, ledBrightness);
+  updateLED( 18 , 0, 0, 0, ledBrightness);
 }
 
